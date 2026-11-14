@@ -1,0 +1,13 @@
+# 改行コードを LF に固定する（OS によって CRLF にならないようにする）
+* text=auto eol=lf
+
+# バイナリはそのまま扱う
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
