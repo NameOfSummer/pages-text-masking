@@ -2,7 +2,7 @@
 
 このファイルは、このリポジトリで作業する Claude Code (claude.ai/code) 向けのガイドです。
 
-text-masking は、テキストの一部を伏せ字などに置き換えるブラウザだけで動くテキストエディタです。置換ルール（置換前 → 置換後）をタグで管理し、置換スイッチを ON にすると置換後のテキストを表示・コピーできます。構成は Vite + React 19 + TypeScript + Tailwind v4 + shadcn/ui (Radix)。GitHub Pages にデプロイします（`vite.config.ts` の `base: "/text-masking/"`）。
+text-masking は、テキストの一部を伏せ字などに置き換えるブラウザだけで動くテキストエディタです。置換ルール（置換前 → 置換後）をタグで管理し、置換スイッチを ON にすると置換後のテキストを表示・コピーできます。構成は Vite + React 19 + TypeScript + Tailwind v4 + shadcn/ui (Radix)。GitHub Pages にデプロイします（`vite.config.ts` の `base: "/pages-text-masking/"`）。
 
 - 仕様の正: `.claude.local/specs/spec.md`（git 管理外。実装前に必ず読む）
 - 見た目と動きの正: `.claude.local/samples/editor-screen.html`（素の HTML/JS）
