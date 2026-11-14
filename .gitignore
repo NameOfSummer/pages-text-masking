@@ -1,29 +1,32 @@
-# Logs
-logs
+# ===== 共通（全リポジトリ。_templates/common/.gitignore と揃える） =====
+
+# 依存パッケージ
+node_modules/
+
+# ログ
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Env
+# 環境変数（秘密情報）
 .env
 .env.*
 !.env.example
+
+# ローカル専用の設計資料・サンプル（.claude.local/ や *.local）
+.claude.local/
+*.local
+
+# テスト
+coverage/
+
+# OS・エディタ
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# ===== リポジトリ固有（ビルド成果物などをこの下に書く） =====
+
+# ビルド成果物
+dist/
+dist-ssr/
