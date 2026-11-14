@@ -1,8 +1,14 @@
+# PR ごとに lint・整形・型・テスト・ビルドを検査する（全リポジトリ共通）。
+# デプロイや ZIP 作成はカテゴリの雛形にある別ワークフローで行う。
 name: CI
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+
+# 検査だけなので、GITHUB_TOKEN は読み取りだけでよい。
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -11,13 +17,15 @@ concurrency:
 jobs:
   check:
     name: Lint, Test & Build
-    # ubuntu-latest は 2026-10-19 から Ubuntu 26.04 へ移行する。Node は setup-node で固定済みなので、ランナーは 24.04 に固定する。
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
-
     steps:
+      # タグは付け替えられるので、action はコミット SHA で固定する（末尾のコメントは対応するタグ）。
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # 後続のステップで git を使わないので、トークンを .git/config に残さない。
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -28,8 +36,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # high 以上の脆弱性があるときだけ落とす（low / moderate は Dependabot で更新する）
       - name: Audit
-        run: npm audit
+        run: npm audit --audit-level=high
 
       - name: Lint
         run: npm run lint
@@ -37,8 +46,11 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
 
-      - name: Typecheck & build
+      - name: Build
         run: npm run build
