@@ -1,8 +1,11 @@
 {
-  "name": "text-masking",
+  "name": "pages-text-masking",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
