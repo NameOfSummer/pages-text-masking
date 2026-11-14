@@ -1,4 +1,15 @@
-dist
-coverage
+# 生成物
+dist/
+coverage/
+.output/
+.wxt/
+gas-dist/
+
+# lockfile は npm が管理する
 package-lock.json
-.claude.local
+
+# ローカル専用
+.claude.local/
+
+# 正本（_templates/common/DESIGN.md）からコピーしたデザイン仕様書のため整形しない
+DESIGN.md
