@@ -5,8 +5,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  // GitHub Pages: https://<user>.github.io/text-masking/
-  base: "/text-masking/",
+  // GitHub Pages: https://<user>.github.io/pages-text-masking/
+  base: "/pages-text-masking/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
