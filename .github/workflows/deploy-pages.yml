@@ -1,3 +1,5 @@
+# main への push（と手動実行）で GitHub Pages にデプロイする。
+# リポジトリの Settings → Pages で Source を「GitHub Actions」にしておく。
 name: Deploy GitHub Pages
 
 on:
@@ -17,12 +19,14 @@ concurrency:
 jobs:
   build:
     name: Build
-    # ubuntu-latest は 2026-10-19 から Ubuntu 26.04 へ移行する。Node は setup-node で固定済みなので、ランナーは 24.04 に固定する。
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
+      # タグは付け替えられるので、action はコミット SHA で固定する（末尾のコメントは対応するタグ）。
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -40,18 +44,17 @@ jobs:
         run: npm run build
 
       - name: Setup Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   deploy:
     name: Deploy
     needs: build
-    # ubuntu-latest は 2026-10-19 から Ubuntu 26.04 へ移行する。デプロイ用ランナーは 24.04 に固定する。
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     environment:
       name: github-pages
@@ -59,4 +62,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
