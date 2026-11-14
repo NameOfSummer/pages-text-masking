@@ -2,5 +2,161 @@
 @import "tw-animate-css";
 
 /*
- * TODO: DESIGN.md のツール UI のトークン（色・影・文字サイズ）とフォント（fontsource）は実装時に定義する。
+ * UI フォント（DESIGN.md 3 章: 本文 Noto Sans JP / 見出し Barlow + Noto Sans JP）。fontsource で自前ホストする。
+ * Noto Sans JP は 1 ウェイトが重いため、使う 400 / 700 だけ読み込む。Barlow は見出しの 700 だけ使う。
  */
+@import "@fontsource/noto-sans-jp/400.css";
+@import "@fontsource/noto-sans-jp/700.css";
+@import "@fontsource/barlow/700.css";
+
+/* DESIGN.md のツール UI のトークン（2 章の色、3.4.1 の文字サイズ、6.1 の影） */
+:root {
+  --bg: #f3f5f7;
+  --ink: #000000;
+  --sub: #56606a;
+  --faint: #98a1aa;
+  --hi: #ffffff;
+  --lo: rgb(0 0 0 / 0.18);
+  --lo-strong: rgb(0 0 0 / 0.25);
+  --blue: #009be0;
+  --red: #d83f30;
+  --orange: #e4a334;
+  --on: var(--blue);
+  --error: var(--red);
+  --focus: var(--blue);
+  --tooltip-bg: #313131;
+  --tooltip-ink: #ffffff;
+  --marker: rgb(255 214 0 / 0.7);
+  --marker-replaced: color-mix(in srgb, var(--blue) 18%, transparent);
+
+  /* 影（凸: カード・ボタン・タグ、凹: 入力欄・溝・押下中） */
+  --card:
+    6px 6px 10px var(--lo), 0 0 4px var(--hi), -3px 0 4px var(--hi),
+    -3px -4px 10px var(--hi);
+  --raised: 6px 6px 12px var(--lo), -4px -4px 10px var(--hi);
+  --raised-sm: 3px 3px 6px var(--lo), -2px -2px 5px var(--hi);
+  --inset: inset 3px 3px 6px var(--lo), inset -3px -3px 6px var(--hi);
+  --inset-sm: inset 2px 2px 4px var(--lo), inset -2px -2px 4px var(--hi);
+  --popover: 8px 8px 20px var(--lo-strong), -4px -4px 12px var(--hi);
+  --thumb: 1px 1px 3px var(--lo-strong), -1px -1px 2px var(--hi);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--focus) 45%, transparent);
+  /* 無効なタグの薄い内枠 */
+  --flat: inset 0 0 0 1px color-mix(in srgb, var(--faint) 40%, transparent);
+  /* エラーの入力欄 */
+  --inset-error: var(--inset-sm), inset 0 0 0 1.5px var(--error);
+  /* スイッチの ON の溝 */
+  --inset-on: inset 2px 2px 4px rgb(0 0 0 / 0.2);
+  /* 重複したタグの点滅 */
+  --flash: var(--raised-sm), 0 0 0 2px var(--on);
+}
+
+/*
+ * 縦並び（画面幅 900px 以下。仕様 2.1）。JS 側の STACKED_MEDIA_QUERY（src/lib/split.ts）と同じ条件にする。
+ * Tailwind の max-[900px] は「900px 未満」になり 900px ちょうどで食い違うため、独自の variant にする。
+ */
+@custom-variant stacked (@media (max-width: 900px));
+
+@theme inline {
+  --font-sans:
+    "Noto Sans JP", "Helvetica Neue", arial, "Hiragino Kaku Gothic ProN",
+    "Hiragino Sans", meiryo, sans-serif;
+  --font-heading:
+    Barlow, "Noto Sans JP", "Helvetica Neue", arial,
+    "Hiragino Kaku Gothic ProN", "Hiragino Sans", meiryo, sans-serif;
+  --font-editor:
+    ui-monospace, "SFMono-Regular", menlo, consolas, "Noto Sans JP",
+    "Hiragino Kaku Gothic ProN", monospace;
+
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-sub: var(--sub);
+  --color-faint: var(--faint);
+  --color-on: var(--on);
+  --color-error: var(--error);
+  --color-orange: var(--orange);
+  --color-tooltip-bg: var(--tooltip-bg);
+  --color-tooltip-ink: var(--tooltip-ink);
+  --color-marker: var(--marker);
+  --color-marker-replaced: var(--marker-replaced);
+
+  --shadow-card: var(--card);
+  --shadow-raised: var(--raised);
+  --shadow-raised-sm: var(--raised-sm);
+  --shadow-inset: var(--inset);
+  --shadow-inset-sm: var(--inset-sm);
+  --shadow-popover: var(--popover);
+  --shadow-thumb: var(--thumb);
+  --shadow-flat: var(--flat);
+  --shadow-inset-error: var(--inset-error);
+  --shadow-inset-on: var(--inset-on);
+  --shadow-inset-focus: var(--inset), var(--focus-ring);
+
+  /* 文字サイズ（DESIGN.md 3.4.1 ツール UI） */
+  --text-section-title: 14px;
+  --text-section-title--line-height: 1.5;
+  --text-body: 13px;
+  --text-body--line-height: 1.6;
+  --text-editor: 13px;
+  --text-editor--line-height: 1.7;
+  --text-control: 12px;
+  --text-control--line-height: 1.4;
+  --text-caption: 11px;
+  --text-caption--line-height: 1.5;
+  --text-badge: 10px;
+  --text-badge--line-height: 1.4;
+
+  --animate-tag-flash: tag-flash 250ms ease-in-out 3;
+
+  @keyframes tag-flash {
+    50% {
+      box-shadow: var(--flash);
+    }
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::placeholder {
+    color: var(--faint);
+  }
+
+  /* フォーカスは青の枠で見せる（受け皿の中の入力欄は、受け皿の光る枠で示すため個別に外す） */
+  :where(button, input, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* 区切りバーのドラッグ中は、ページ全体の文字選択を止めてカーソルをそろえる */
+  body[data-resizing="horizontal"] {
+    user-select: none;
+    cursor: col-resize;
+  }
+
+  body[data-resizing="vertical"] {
+    user-select: none;
+    cursor: row-resize;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
