@@ -23,6 +23,7 @@ coverage/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 
 # ===== リポジトリ固有（ビルド成果物などをこの下に書く） =====
