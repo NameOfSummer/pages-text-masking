@@ -123,6 +123,13 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /^a1（置換後/ })).toHaveFocus();
   });
 
+  it("タグにマウスを載せると、置換後を矢印なしで吹き出しに出す", async () => {
+    const user = setup();
+    await addTag(user, "山田太郎");
+    await user.hover(screen.getByRole("button", { name: /^山田太郎（置換後/ }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/^山＊＊郎$/);
+  });
+
   it("× でタグを削除する", async () => {
     const user = setup();
     await addTag(user, "山田");

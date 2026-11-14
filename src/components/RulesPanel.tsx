@@ -365,7 +365,7 @@ export function RulesPanel({
       {tooltipRule && tooltipAnchor && (
         <TagTooltip
           anchor={tooltipAnchor}
-          text={`→ ${tooltipRule.replacement}${tooltipRule.isEnabled ? "" : "（無効）"}`}
+          text={`${tooltipRule.replacement}${tooltipRule.isEnabled ? "" : "（無効）"}`}
         />
       )}
       {editing && editingRule && (
