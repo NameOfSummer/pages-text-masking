@@ -208,6 +208,22 @@ describe("App", () => {
     expect(screen.getByText("3 / 200")).toBeInTheDocument();
   });
 
+  it("コピーボタンは、アイコンを付けても名前は「コピー」のまま。置換中は置換後をコピーする", async () => {
+    const user = setup();
+    await user.type(screen.getByRole("textbox", { name: "テキスト" }), "山田");
+    await addTag(user, "山田");
+    await user.click(screen.getByRole("switch", { name: "置換" }));
+
+    const copyButton = screen.getByRole("button", { name: "コピー" });
+    expect(copyButton.querySelector("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    await user.click(copyButton);
+    expect(await navigator.clipboard.readText()).toBe("山＊");
+    expect(screen.getByText("コピー完了")).toBeInTheDocument();
+  });
+
   it("区切りバーに role と aria 属性を付け、キーで動かす", async () => {
     const user = setup();
     const separator = screen.getByRole("separator", { name: "幅の調節" });

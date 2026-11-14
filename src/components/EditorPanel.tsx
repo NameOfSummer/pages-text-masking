@@ -1,3 +1,4 @@
+import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { ModeBadge } from "./ModeBadge";
 import { NeuButton } from "./NeuButton";
@@ -80,7 +81,10 @@ export function EditorPanel({
             label="置換"
             onCheckedChange={onReplacingChange}
           />
-          <NeuButton onClick={handleCopy}>コピー</NeuButton>
+          <NeuButton onClick={handleCopy}>
+            <ClipboardDocumentIcon className="size-3.5" aria-hidden="true" />
+            コピー
+          </NeuButton>
         </div>
       </div>
       <TextEditor
