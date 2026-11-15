@@ -13,6 +13,12 @@ import { buildReplacedText, type Segment } from "@/lib/replace";
 /** コピーの結果を出しておく時間（ミリ秒） */
 const COPY_STATUS_DURATION_MS = 1800;
 
+/** 見出し行に文言つきのボタンが収まらない幅（28rem 未満）では、丸いアイコンだけのボタンにする */
+const ICON_ONLY_CLASS = "@max-md:size-[30px] @max-md:p-0";
+
+/** 狭いときは文言を見た目から隠す（読み上げの名前としては残す） */
+const LABEL_CLASS = "@max-md:sr-only";
+
 /** テキストセクションの props */
 type Props = {
   /** 原文 */
@@ -73,7 +79,7 @@ export function EditorPanel({
   return (
     <section
       aria-labelledby="editor-title"
-      className="flex min-h-0 flex-col rounded-[26px] bg-bg p-5 shadow-card"
+      className="@container flex min-h-0 flex-col rounded-[26px] bg-bg p-5 shadow-card"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex items-center gap-3">
@@ -85,30 +91,39 @@ export function EditorPanel({
           </h2>
           <ModeBadge isReplacing={isReplacing} />
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-          <span role="status" className="min-h-[1em] text-caption text-sub">
-            {copyStatus}
-          </span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Switch
+            isChecked={isReplacing}
+            label="置換"
+            onCheckedChange={onReplacingChange}
+          />
           <NeuButton
             disabled={formatBlockedReason !== undefined}
-            title={formatBlockedReason}
+            title={formatBlockedReason ?? "フォーマット"}
+            className={ICON_ONLY_CLASS}
             onClick={() => {
               // 判定が遅れている間に JSON でなくなった本文は整形しない
               if (isJsonContainer(text)) onTextChange(formatJson(text));
             }}
           >
             <CodeBracketIcon className="size-3.5" aria-hidden="true" />
-            フォーマット
+            <span className={LABEL_CLASS}>フォーマット</span>
           </NeuButton>
-          <Switch
-            isChecked={isReplacing}
-            label="置換"
-            onCheckedChange={onReplacingChange}
-          />
-          <NeuButton onClick={handleCopy}>
+          <NeuButton
+            title="コピー"
+            className={ICON_ONLY_CLASS}
+            onClick={handleCopy}
+          >
             <ClipboardDocumentIcon className="size-3.5" aria-hidden="true" />
-            コピー
+            <span className={LABEL_CLASS}>コピー</span>
           </NeuButton>
+          {/* 空のときは前の gap を打ち消し、ボタンの並びの端をそろえる（読み上げのため要素は残す） */}
+          <span
+            role="status"
+            className="min-h-[1em] text-caption text-sub empty:-ml-4"
+          >
+            {copyStatus}
+          </span>
         </div>
       </div>
       <TextEditor
