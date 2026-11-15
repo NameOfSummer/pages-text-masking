@@ -1,4 +1,5 @@
 import {
+  ArrowDownTrayIcon,
   ClipboardDocumentIcon,
   CodeBracketIcon,
 } from "@heroicons/react/24/outline";
@@ -7,6 +8,7 @@ import { ModeBadge } from "./ModeBadge";
 import { NeuButton } from "./NeuButton";
 import { Switch } from "./Switch";
 import { TextEditor } from "./TextEditor";
+import { buildDownloadFileName } from "@/lib/download";
 import { formatJson, isJsonContainer } from "@/lib/json";
 import { buildReplacedText, type Segment } from "@/lib/replace";
 
@@ -60,9 +62,25 @@ export function EditorPanel({
   // 画面を閉じるときに、コピーの結果を消すタイマーを止める
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
+  // 表示中のテキスト（OFF なら原文、ON なら置換後）
+  const getShownText = (): string =>
+    isReplacing ? buildReplacedText(segments) : text;
+
+  const handleDownload = (): void => {
+    const value = getShownText();
+    const url = URL.createObjectURL(
+      new Blob([value], { type: "text/plain;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    // 置換後は JSON でなくなることもあるため、保存する文字列そのもので判定する
+    link.download = buildDownloadFileName(new Date(), isJsonContainer(value));
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleCopy = async (): Promise<void> => {
-    // 表示中のテキスト（OFF なら原文、ON なら置換後）をコピーする
-    const value = isReplacing ? buildReplacedText(segments) : text;
+    const value = getShownText();
     try {
       await navigator.clipboard.writeText(value);
       setCopyStatus("コピー完了");
@@ -91,7 +109,8 @@ export function EditorPanel({
           </h2>
           <ModeBadge isReplacing={isReplacing} />
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* 見出しの下に折り返したときも右に寄せる */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           <Switch
             isChecked={isReplacing}
             label="置換"
@@ -116,6 +135,14 @@ export function EditorPanel({
           >
             <ClipboardDocumentIcon className="size-3.5" aria-hidden="true" />
             <span className={LABEL_CLASS}>コピー</span>
+          </NeuButton>
+          <NeuButton
+            title="ダウンロード"
+            className={ICON_ONLY_CLASS}
+            onClick={handleDownload}
+          >
+            <ArrowDownTrayIcon className="size-3.5" aria-hidden="true" />
+            <span className={LABEL_CLASS}>ダウンロード</span>
           </NeuButton>
           {/* 空のときは前の gap を打ち消し、ボタンの並びの端をそろえる（読み上げのため要素は残す） */}
           <span

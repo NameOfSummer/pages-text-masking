@@ -3,7 +3,7 @@ import { undo } from "@codemirror/commands";
 import { EditorSelection } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { RULES_STORAGE_KEY } from "@/lib/storage";
 
@@ -251,6 +251,39 @@ describe("App", () => {
     await user.click(copyButton);
     expect(await navigator.clipboard.readText()).toBe("山＊");
     expect(screen.getByText("コピー完了")).toBeInTheDocument();
+  });
+
+  it("置換中のダウンロードは置換後を、JSON なら .json で保存する", async () => {
+    // jsdom には createObjectURL がないため、渡された Blob とリンクを横取りする
+    const blobs: Blob[] = [];
+    const fileNames: string[] = [];
+    const createSpy = vi
+      .spyOn(URL, "createObjectURL")
+      .mockImplementation((blob) => {
+        blobs.push(blob as Blob);
+        return "blob:test";
+      });
+    const revokeSpy = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => undefined);
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        fileNames.push(this.download);
+      });
+
+    const user = setup();
+    typeText('{"name":"山田"}');
+    await addTag(user, "山田");
+    await user.click(screen.getByRole("switch", { name: "置換" }));
+    await user.click(screen.getByRole("button", { name: "ダウンロード" }));
+
+    expect(await blobs[0]?.text()).toBe('{"name":"山＊"}');
+    expect(fileNames[0]).toMatch(/^text_\d{8}-\d{6}\.json$/);
+    expect(revokeSpy).toHaveBeenCalledWith("blob:test");
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+    clickSpy.mockRestore();
   });
 
   it("区切りバーに role と aria 属性を付け、キーで動かす", async () => {
