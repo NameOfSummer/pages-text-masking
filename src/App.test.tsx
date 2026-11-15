@@ -319,4 +319,21 @@ describe("App", () => {
     expect(copied.get("text/plain")).toBe("あ山＊＊郎い");
     expect(event.defaultPrevented).toBe(true);
   });
+
+  it("本文があるときだけ、ページを離れる前に確認を出す", () => {
+    setup();
+    const leave = (): Event => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event;
+    };
+    expect(leave().defaultPrevented).toBe(false);
+    typeText("秘密の本文");
+    expect(leave().defaultPrevented).toBe(true);
+    act(() => {
+      const view = getEditor();
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length } });
+    });
+    expect(leave().defaultPrevented).toBe(false);
+  });
 });

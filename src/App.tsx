@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EditorPanel } from "@/components/EditorPanel";
 import { RulesPanel } from "@/components/RulesPanel";
 import { Splitter } from "@/components/Splitter";
@@ -26,6 +26,19 @@ export function App() {
   // マーカー・置換後の表示・タグの件数は、同じ当てはめ方で数える（仕様 3.2）
   const segments = useMemo(() => splitByRules(text, rules), [text, rules]);
   const counts = useMemo(() => countMatches(segments), [segments]);
+
+  // 本文は保存しないので、入力があるときはページ移動・リロードの前にブラウザの確認を出す
+  const hasText = text !== "";
+  useEffect(() => {
+    if (!hasText) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+      event.preventDefault();
+      // 古いブラウザ（Chrome 119 以前など）は returnValue が必要
+      event.returnValue = true;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasText]);
 
   return (
     <div className="flex h-full flex-col px-6 py-5">
