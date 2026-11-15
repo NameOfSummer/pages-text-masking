@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildReplacedText, countMatches, splitByRules } from "./replace";
+import {
+  buildReplacedRange,
+  buildReplacedText,
+  countMatches,
+  splitByRules,
+} from "./replace";
 import { type Rule } from "./rules";
 
 /**
@@ -94,5 +99,18 @@ describe("countMatches", () => {
   it("無効なルールは数えない", () => {
     const rules = [makeRule(1, "a", "b", false)];
     expect(countMatches(splitByRules("aaa", rules)).size).toBe(0);
+  });
+});
+
+describe("buildReplacedRange", () => {
+  const segments = splitByRules("あ山田い", [makeRule(1, "山田", "＊＊")]);
+
+  it("範囲内の一致箇所を置換後にし、それ以外は原文を切り出す", () => {
+    expect(buildReplacedRange(segments, 0, 4)).toBe("あ＊＊い");
+    expect(buildReplacedRange(segments, 3, 4)).toBe("い");
+  });
+
+  it("一致箇所に一部でもかかれば、置換後を丸ごと入れる", () => {
+    expect(buildReplacedRange(segments, 2, 4)).toBe("＊＊い");
   });
 });

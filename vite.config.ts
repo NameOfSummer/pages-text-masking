@@ -8,6 +8,10 @@ export default defineConfig({
   // GitHub Pages: https://<user>.github.io/pages-text-masking/
   base: "/pages-text-masking/",
   plugins: [react(), tailwindcss()],
+  build: {
+    // CodeMirror で約 590 kB。エディタは起動直後に必ず使うので分割せず、警告の上限だけ上げる
+    chunkSizeWarningLimit: 700,
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),

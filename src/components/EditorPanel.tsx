@@ -1,9 +1,13 @@
-import { ClipboardDocumentIcon } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
+import {
+  ClipboardDocumentIcon,
+  CodeBracketIcon,
+} from "@heroicons/react/24/outline";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ModeBadge } from "./ModeBadge";
 import { NeuButton } from "./NeuButton";
 import { Switch } from "./Switch";
 import { TextEditor } from "./TextEditor";
+import { formatJson, isJsonContainer } from "@/lib/json";
 import { buildReplacedText, type Segment } from "@/lib/replace";
 
 /** コピーの結果を出しておく時間（ミリ秒） */
@@ -37,6 +41,15 @@ export function EditorPanel({
 }: Props) {
   const [copyStatus, setCopyStatus] = useState("");
   const timerRef = useRef<number | undefined>(undefined);
+  // 長い本文でも入力を先に反映し、JSON の判定（JSON.parse）は後回しにする
+  const deferredText = useDeferredValue(text);
+  const isJson = useMemo(() => isJsonContainer(deferredText), [deferredText]);
+  // 押せない理由（押せるときは undefined）
+  const formatBlockedReason = isReplacing
+    ? "置換中"
+    : isJson
+      ? undefined
+      : "JSON ではない";
 
   // 画面を閉じるときに、コピーの結果を消すタイマーを止める
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
@@ -76,6 +89,17 @@ export function EditorPanel({
           <span role="status" className="min-h-[1em] text-caption text-sub">
             {copyStatus}
           </span>
+          <NeuButton
+            disabled={formatBlockedReason !== undefined}
+            title={formatBlockedReason}
+            onClick={() => {
+              // 判定が遅れている間に JSON でなくなった本文は整形しない
+              if (isJsonContainer(text)) onTextChange(formatJson(text));
+            }}
+          >
+            <CodeBracketIcon className="size-3.5" aria-hidden="true" />
+            フォーマット
+          </NeuButton>
           <Switch
             isChecked={isReplacing}
             label="置換"
@@ -91,6 +115,7 @@ export function EditorPanel({
         text={text}
         segments={segments}
         isReplacing={isReplacing}
+        isJson={isJson}
         onTextChange={onTextChange}
       />
       <div className="mt-3 flex items-center justify-between gap-3">
