@@ -2,6 +2,7 @@
 
 > dentsu（https://www.dentsu.co.jp/）のデザイン仕様書。
 > 実サイトの computed style に基づく。CSS Custom Properties は未使用。
+> プレビュー：https://kzhrknt.github.io/awesome-design-md-jp/design-md/dentsu/preview.html
 > このアプリ（ツール UI）では、色・影・文字サイズを CSS 変数（Custom Properties）で定義して使う（2 章・3.4.1・6 章の「ツール UI」を参照）。
 
 ---
