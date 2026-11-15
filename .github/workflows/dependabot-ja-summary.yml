@@ -1,0 +1,116 @@
+# Dependabot の PR に、Gemini で作った日本語要約をコメントする
+#
+# 導入時の注意:
+#   GEMINI_API_KEY は Settings → Secrets and variables → **Dependabot** に登録する。
+#   Dependabot が起こしたイベントでは Actions secrets は渡されないため、Actions 側だけに登録しても動かない。
+name: Dependabot 日本語要約
+
+on:
+  pull_request:
+    # opened   : PR が作成されたとき
+    # reopened : 閉じた PR が再オープンされたとき
+    # edited   : タイトルや本文が変わったとき（新しいバージョンが出て PR が更新された場合など）
+    # ※ synchronize（rebase など）は本文が変わらないので対象外にしている
+    types: [opened, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# 同じ PR で連続して動いた場合は、古い実行をキャンセルする
+concurrency:
+  group: ja-summary-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  # 要約コメントを見分けるための目印（他のコメントを上書きしないため）
+  COMMENT_MARKER: "<!-- dependabot-ja-summary -->"
+
+jobs:
+  summarize:
+    # Dependabot による操作のときだけ実行する（人が reopen した場合は対象外）
+    # ※ 人の操作も対象にすると Actions secrets 側にもキーが必要になるため、actor で判定している
+    # edited の場合は、タイトルか本文が変わったときだけ実行する（ラベル変更などでは動かさない）
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      (github.event.action != 'edited' ||
+       github.event.changes.body != null ||
+       github.event.changes.title != null)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - name: Gemini で日本語要約を作成する
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # 本文が長すぎる場合に備えて先頭 30000 文字に切り詰める
+          BODY=$(printf '%s' "$PR_BODY" | head -c 30000)
+
+          PROMPT=$(cat <<EOF
+          以下は Dependabot が作成した依存関係更新の PR です。
+          内容を日本語で簡潔にまとめてください。Markdown で、次の見出しを使ってください。
+
+          ### 更新内容
+          （何をどのバージョンからどのバージョンに更新するか）
+          ### 主な変更点
+          （箇条書きで3〜5個まで）
+          ### 注意点
+          （breaking change や移行作業が必要な点。なければ「特になし」）
+
+          推測はせず、本文に書かれていることだけをもとにしてください。
+
+          --- PR タイトル ---
+          $PR_TITLE
+
+          --- PR 本文 ---
+          $BODY
+          EOF
+          )
+
+          jq -n --arg text "$PROMPT" \
+            '{contents: [{parts: [{text: $text}]}]}' > request.json
+
+          # モデル名は変わることがあるので、必要に応じて最新の Flash 系に変更してください
+          # 失敗時はエラー内容をログに出してから終了する（bash -e で curl の直後に止まるのを防ぐ）
+          curl -sS --fail-with-body --max-time 60 \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent" \
+            -H "Content-Type: application/json" \
+            -H "x-goog-api-key: $GEMINI_API_KEY" \
+            -d @request.json > response.json || { cat response.json; exit 1; }
+
+          SUMMARY=$(jq -r '.candidates[0].content.parts[0].text // empty' response.json)
+          if [ -z "$SUMMARY" ]; then
+            echo "要約を取得できませんでした"
+            cat response.json
+            exit 1
+          fi
+
+          {
+            echo "$COMMENT_MARKER"
+            echo "## 🇯🇵 日本語要約（Gemini による自動生成）"
+            echo
+            echo "$SUMMARY"
+            echo
+            echo "---"
+            echo "<sub>この要約は PR 本文をもとに自動生成されています。正確な内容は元の説明を確認してください。</sub>"
+          } > comment.md
+
+      - name: コメントを投稿または更新する
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # 目印つきの既存コメントがあれば上書きし、なければ新しく作成する
+          # （PR が更新されるたびにコメントが増えないようにし、他の bot コメントは触らないため）
+          COMMENT_ID=$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$COMMENT_MARKER\"))) | .id" \
+            | head -n 1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$COMMENT_ID" -F body=@comment.md > /dev/null
+          else
+            gh api -X POST "repos/$REPO/issues/$PR_NUMBER/comments" -F body=@comment.md > /dev/null
+          fi
