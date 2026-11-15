@@ -1,4 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import { undo } from "@codemirror/commands";
+import { EditorSelection } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App";
@@ -30,6 +33,31 @@ async function addTag(
   );
 }
 
+/**
+ * テキスト欄（置換 OFF）の CodeMirror を取り出す。
+ * @returns {EditorView} エディタ
+ */
+function getEditor(): EditorView {
+  const view = EditorView.findFromDOM(
+    screen.getByRole("textbox", { name: /テキスト$/ }),
+  );
+  if (!view) throw new Error("エディタが見つからない");
+  return view;
+}
+
+/**
+ * テキスト欄の末尾に文字を入れる。
+ * CodeMirror は contenteditable で、jsdom では user.type が文字を入れられないため、エディタに直接 dispatch する。
+ * @param value 入れる文字
+ * @returns {void}
+ */
+function typeText(value: string): void {
+  const view = getEditor();
+  act(() => {
+    view.dispatch({ changes: { from: view.state.doc.length, insert: value } });
+  });
+}
+
 describe("App", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -50,10 +78,7 @@ describe("App", () => {
 
   it("Enter で追加し、一致件数を出し、置換 ON で置換後を表示する", async () => {
     const user = setup();
-    await user.type(
-      screen.getByRole("textbox", { name: "テキスト" }),
-      "山田太郎と山田太郎",
-    );
+    typeText("山田太郎と山田太郎");
     await addTag(user, "山田太郎");
 
     const tag = screen.getByRole("button", { name: /^山田太郎（置換後/ });
@@ -71,10 +96,7 @@ describe("App", () => {
 
   it("ルールを保存し、テキスト本文は保存しない", async () => {
     const user = setup();
-    await user.type(
-      screen.getByRole("textbox", { name: "テキスト" }),
-      "秘密の本文",
-    );
+    typeText("秘密の本文");
     await addTag(user, "秘密");
     const stored = localStorage.getItem(RULES_STORAGE_KEY) ?? "";
     expect(JSON.parse(stored)).toEqual([
@@ -139,7 +161,7 @@ describe("App", () => {
 
   it("編集欄で置換後を書き換え、Esc で閉じるとタグにフォーカスを戻す", async () => {
     const user = setup();
-    await user.type(screen.getByRole("textbox", { name: "テキスト" }), "山田");
+    typeText("山田");
     await addTag(user, "山田");
     await user.click(screen.getByRole("button", { name: /^山田（置換後/ }));
 
@@ -178,7 +200,7 @@ describe("App", () => {
 
   it("編集欄の有効スイッチで無効にすると、置換の対象から外す", async () => {
     const user = setup();
-    await user.type(screen.getByRole("textbox", { name: "テキスト" }), "山田");
+    typeText("山田");
     await addTag(user, "山田");
     await user.click(screen.getByRole("button", { name: /^山田（置換後/ }));
     await user.click(
@@ -217,7 +239,7 @@ describe("App", () => {
 
   it("コピーボタンは、アイコンを付けても名前は「コピー」のまま。置換中は置換後をコピーする", async () => {
     const user = setup();
-    await user.type(screen.getByRole("textbox", { name: "テキスト" }), "山田");
+    typeText("山田");
     await addTag(user, "山田");
     await user.click(screen.getByRole("switch", { name: "置換" }));
 
@@ -242,5 +264,76 @@ describe("App", () => {
       "aria-valuenow",
       separator.getAttribute("aria-valuemax"),
     );
+  });
+
+  it("JSON ならフォーマットで整形し、Undo で戻す", async () => {
+    const user = setup();
+    const formatButton = screen.getByRole("button", { name: "フォーマット" });
+    expect(formatButton).toBeDisabled();
+    expect(formatButton).toHaveAttribute("title", "JSON ではない");
+
+    typeText('{"a":[1,2]}');
+    expect(formatButton).toBeEnabled();
+    await user.click(formatButton);
+    expect(getEditor().state.doc.toString()).toBe(
+      '{\n  "a": [\n    1,\n    2\n  ]\n}',
+    );
+
+    act(() => {
+      undo(getEditor());
+    });
+    expect(getEditor().state.doc.toString()).toBe('{"a":[1,2]}');
+  });
+
+  it("置換中はフォーマットを押せず、テキストを読み取り専用にする", async () => {
+    const user = setup();
+    typeText("[1]");
+    await user.click(screen.getByRole("switch", { name: "置換" }));
+    const formatButton = screen.getByRole("button", { name: "フォーマット" });
+    expect(formatButton).toBeDisabled();
+    expect(formatButton).toHaveAttribute("title", "置換中");
+    expect(
+      screen.getByRole("textbox", { name: "置換後のテキスト" }),
+    ).toHaveAttribute("aria-readonly", "true");
+    expect(getEditor().state.readOnly).toBe(true);
+  });
+
+  it("置換中に選択範囲をコピーすると、原文ではなく置換後を入れる", async () => {
+    const user = setup();
+    typeText("あ山田太郎い");
+    await addTag(user, "山田太郎");
+    await user.click(screen.getByRole("switch", { name: "置換" }));
+    const view = getEditor();
+    act(() => {
+      view.dispatch({ selection: EditorSelection.single(0, 6) });
+    });
+    // jsdom には DataTransfer がないため、setData だけ持つものを渡す
+    const copied = new Map<string, string>();
+    const event = new Event("copy", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        setData: (type: string, value: string) => copied.set(type, value),
+      },
+    });
+    view.contentDOM.dispatchEvent(event);
+    expect(copied.get("text/plain")).toBe("あ山＊＊郎い");
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("本文があるときだけ、ページを離れる前に確認を出す", () => {
+    setup();
+    const leave = (): Event => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event;
+    };
+    expect(leave().defaultPrevented).toBe(false);
+    typeText("秘密の本文");
+    expect(leave().defaultPrevented).toBe(true);
+    act(() => {
+      const view = getEditor();
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length } });
+    });
+    expect(leave().defaultPrevented).toBe(false);
   });
 });

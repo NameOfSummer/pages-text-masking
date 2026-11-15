@@ -75,6 +75,35 @@ export function buildReplacedText(segments: readonly Segment[]): string {
 }
 
 /**
+ * 原文の範囲 [from, to) にかかる区間から、置換後のテキストを作る（置換中に選択範囲をコピーするときに使う）。
+ * 一致箇所に少しでもかかれば、置換後を丸ごと入れる（原文の一部を出さないため）。
+ * @param segments 分割した区間の一覧
+ * @param from 範囲の先頭（原文の位置）
+ * @param to 範囲の末尾（原文の位置、含まない）
+ * @returns {string} 範囲の置換後のテキスト
+ */
+export function buildReplacedRange(
+  segments: readonly Segment[],
+  from: number,
+  to: number,
+): string {
+  return segments
+    .filter(
+      (segment) =>
+        segment.start < to && segment.start + segment.text.length > from,
+    )
+    .map((segment) =>
+      segment.rule
+        ? segment.rule.replacement
+        : segment.text.slice(
+            Math.max(from - segment.start, 0),
+            to - segment.start,
+          ),
+    )
+    .join("");
+}
+
+/**
  * ルールごとの一致件数を数える。
  * @param segments 分割した区間の一覧
  * @returns {Map<number, number>} ルール ID ごとの一致件数

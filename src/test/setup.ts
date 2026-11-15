@@ -6,3 +6,8 @@ import { afterEach } from "vitest";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom は Range のレイアウト計測を持たず、CodeMirror の計測で落ちるため、空の結果を返す（as は DOMRectList の型に合わせるだけ）
+Range.prototype.getClientRects = () =>
+  Object.assign([], { item: () => null }) as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect = () => new DOMRect();
