@@ -109,7 +109,8 @@ export function EditorPanel({
           </h2>
           <ModeBadge isReplacing={isReplacing} />
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* 見出しの下に折り返したときも右に寄せる */}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           <Switch
             isChecked={isReplacing}
             label="置換"
