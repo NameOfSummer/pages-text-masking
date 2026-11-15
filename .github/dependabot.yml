@@ -9,6 +9,14 @@ updates:
     cooldown:
       # .npmrc の min-release-age=7 と揃える（version updates のみ。security は即時）
       default-days: 7
+    groups:
+      # react と react-dom は版が完全に一致しないと起動しないため、同じ PR で上げる
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
 
   - package-ecosystem: github-actions
     directory: /

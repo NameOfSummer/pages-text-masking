@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* デザイン仕様書の本文（"shadow" など）をクラス名として拾わない */
+@source not "../DESIGN.md";
 
 /*
  * UI フォント（DESIGN.md 3 章: 本文 Noto Sans JP / 見出し Barlow + Noto Sans JP）。fontsource で自前ホストする。
